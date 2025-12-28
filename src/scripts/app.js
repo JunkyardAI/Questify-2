@@ -59,11 +59,11 @@ function appReducer(state, action) {
                 const priorityMult = window.PRIORITIES[task.priority]?.xpMult || 1;
                 
                 // Calculate multiplier based on current combo state
-                // This ensures we remove the "Bonus" XP we likely just awarded
                 const currentMult = newCombo.count > 0 ? (1 + ((newCombo.count - 1) * 0.1)) : 1;
                 const totalRemove = Math.floor(task.xpReward * priorityMult * currentMult);
                 
-                newXp = Math.max(0, newXp - totalRemove);
+                // Simply subtract. Level down logic below will handle negative values.
+                newXp = newXp - totalRemove;
                 
                 // Decrement combo count to prevent multiplier climbing
                 if (newCombo.count > 0) {
@@ -71,11 +71,25 @@ function appReducer(state, action) {
                 }
             }
             
-            // Level Up Logic
+            // Level Logic (Up and Down)
+            
+            // Handle Level Up
             while (newXp >= newLevel * 1000) {
                 newXp -= newLevel * 1000;
                 newLevel++;
                 effect = { type: 'LEVEL_UP', level: newLevel };
+            }
+
+            // Handle Level Down (Fix for exploit)
+            // If XP is negative, we drop a level and add the previous level's XP cap back
+            while (newXp < 0 && newLevel > 1) {
+                newLevel--;
+                newXp += newLevel * 1000;
+            }
+            
+            // Safety: If Level 1 and XP is still negative, cap at 0
+            if (newLevel === 1 && newXp < 0) {
+                newXp = 0;
             }
 
             return {

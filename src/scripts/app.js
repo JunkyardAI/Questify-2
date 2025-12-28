@@ -55,10 +55,20 @@ function appReducer(state, action) {
                 newXp += totalXpGain;
                 effect = { type: 'COMPLETE', xpGained: totalXpGain, combo: newCombo.count };
             } else {
-                // Removing XP penalty
+                // Removing XP penalty & Reverting Combo to prevent farming
                 const priorityMult = window.PRIORITIES[task.priority]?.xpMult || 1;
-                const baseRemove = Math.floor(task.xpReward * priorityMult);
-                newXp = Math.max(0, newXp - baseRemove);
+                
+                // Calculate multiplier based on current combo state
+                // This ensures we remove the "Bonus" XP we likely just awarded
+                const currentMult = newCombo.count > 0 ? (1 + ((newCombo.count - 1) * 0.1)) : 1;
+                const totalRemove = Math.floor(task.xpReward * priorityMult * currentMult);
+                
+                newXp = Math.max(0, newXp - totalRemove);
+                
+                // Decrement combo count to prevent multiplier climbing
+                if (newCombo.count > 0) {
+                    newCombo.count--;
+                }
             }
             
             // Level Up Logic

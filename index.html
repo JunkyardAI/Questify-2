@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Questify: A gamified productivity dashboard. Turn your tasks into quests.">
+    <title>Questify | Open Source Productivity RPG</title>
+    
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/styles/main.css">
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        discord: {
+                            darkest: '#202225',
+                            darker: '#2f3136',
+                            dark: '#36393f',
+                            light: '#40444b',
+                            blurple: '#5865F2',
+                            green: '#3BA55C',
+                            red: '#ED4245',
+                            yellow: '#FEE75C'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Application Scripts (Order is Critical) -->
+    <!-- 1. Utilities and Globals -->
+    <script type="text/babel" src="src/scripts/utils.js"></script>
+    <script type="text/babel" src="src/scripts/constants.js"></script>
+    
+    <!-- 2. React Components -->
+    <script type="text/babel" src="src/scripts/components.js"></script>
+    
+    <!-- 3. Core App Logic -->
+    <script type="text/babel" src="src/scripts/app.js"></script>
+</body>
+</html>

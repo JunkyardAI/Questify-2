@@ -257,12 +257,72 @@ window.DashboardBoard = ({ state, dispatch }) => {
 
 // --- GrimoireModal (Blueprints) ---
 window.GrimoireModal = ({ state, dispatch, onClose }) => {
-    const [view, setView] = useState('list'); // list, create
+    const [view, setView] = useState('list'); // list, create, paste
     const [newBpName, setNewBpName] = useState('');
+    const [pastedText, setPastedText] = useState('');
     const fileInputRef = useRef(null);
 
     const activeFolder = state.folders.find(f => f.id === state.activeFolderId) || state.folders[0];
     const tasksInFolder = state.tasks.filter(t => t.folderId === state.activeFolderId);
+
+    // AI Text Parser
+    const parseAIInstructions = (text) => {
+        const lines = text.split('\n');
+        const tasks = [];
+        let currentTask = null;
+
+        lines.forEach(line => {
+            const cleanLine = line.trim();
+            if (!cleanLine) return;
+
+            // Heuristics for Task Headers (Step X: or 1.)
+            const isHeader = /^(?:Step\s+\d+|^\d+\.)/i.test(cleanLine);
+            
+            if (isHeader) {
+                if (currentTask) tasks.push(currentTask);
+                currentTask = { 
+                    title: cleanLine, 
+                    priority: 'MEDIUM', 
+                    xpReward: 100, 
+                    subtasks: [] 
+                };
+            } else {
+                if (currentTask) {
+                    currentTask.subtasks.push({ title: cleanLine, completed: false });
+                } else {
+                    // Start a generic task if text comes before any header
+                    currentTask = { 
+                        title: "Overview / Prep", 
+                        priority: 'MEDIUM', 
+                        xpReward: 50, 
+                        subtasks: [{ title: cleanLine, completed: false }] 
+                    };
+                }
+            }
+        });
+        if (currentTask) tasks.push(currentTask);
+        return tasks;
+    };
+
+    const handleSmartImport = () => {
+        if (!pastedText.trim() || !newBpName.trim()) return;
+        
+        const tasks = parseAIInstructions(pastedText);
+        
+        if (tasks.length === 0) {
+            alert("Could not parse tasks. Try using 'Step 1:' format.");
+            return;
+        }
+
+        dispatch({
+            type: 'SAVE_BLUEPRINT',
+            payload: { name: newBpName, tasks: tasks }
+        });
+        
+        setNewBpName('');
+        setPastedText('');
+        setView('list');
+    };
 
     const handleCreate = () => {
         if(!newBpName.trim()) return;
@@ -326,10 +386,13 @@ window.GrimoireModal = ({ state, dispatch, onClose }) => {
                         <div className="space-y-4">
                             <div className="flex gap-2 mb-4">
                                 <button onClick={() => setView('create')} className="flex-1 bg-discord-blurple hover:bg-indigo-600 text-white py-2 rounded font-bold text-xs flex items-center justify-center gap-2">
-                                    <Icon name="plus" size={14} /> Create from Current Folder
+                                    <Icon name="plus" size={14} /> From Current Folder
+                                </button>
+                                <button onClick={() => setView('paste')} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded font-bold text-xs flex items-center justify-center gap-2">
+                                    <Icon name="clipboard" size={14} /> Paste from AI
                                 </button>
                                 <button onClick={handleImportClick} className="flex-1 bg-discord-light hover:bg-gray-600 text-white py-2 rounded font-bold text-xs flex items-center justify-center gap-2">
-                                    <Icon name="upload" size={14} /> Import Blueprint
+                                    <Icon name="upload" size={14} /> Import File
                                 </button>
                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".json" />
                             </div>
@@ -376,6 +439,33 @@ window.GrimoireModal = ({ state, dispatch, onClose }) => {
                                 <div className="flex gap-2">
                                     <button onClick={() => setView('list')} className="flex-1 bg-transparent hover:bg-discord-light text-gray-400 py-2 rounded text-xs">Cancel</button>
                                     <button onClick={handleCreate} className="flex-1 bg-discord-blurple hover:bg-indigo-600 text-white py-2 rounded font-bold text-xs">Save Blueprint</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {view === 'paste' && (
+                        <div className="space-y-4">
+                            <div className="bg-discord-darker p-4 rounded text-sm text-gray-300">
+                                <p className="mb-2 font-bold text-white flex items-center gap-2"><Icon name="sparkles" size={16} className="text-purple-400"/> Paste Instructions from AI</p>
+                                <p className="text-xs text-gray-400 mb-4">
+                                    Paste a step-by-step guide (e.g. from ChatGPT). We'll convert "Step 1" lines into Tasks and the rest into Subtasks.
+                                </p>
+                                <input 
+                                    className="w-full bg-discord-darkest text-white p-2 rounded border border-discord-light mb-2 outline-none focus:border-discord-blurple"
+                                    placeholder="Blueprint Name"
+                                    value={newBpName}
+                                    onChange={e => setNewBpName(e.target.value)}
+                                />
+                                <textarea 
+                                    className="w-full h-48 bg-discord-darkest text-gray-300 p-2 rounded border border-discord-light mb-4 outline-none focus:border-discord-blurple text-xs font-mono"
+                                    placeholder="Step 1: Do this...&#10;  - Detail A&#10;  - Detail B&#10;Step 2: Do that..."
+                                    value={pastedText}
+                                    onChange={e => setPastedText(e.target.value)}
+                                />
+                                <div className="flex gap-2">
+                                    <button onClick={() => setView('list')} className="flex-1 bg-transparent hover:bg-discord-light text-gray-400 py-2 rounded text-xs">Cancel</button>
+                                    <button onClick={handleSmartImport} className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded font-bold text-xs">Parse & Save</button>
                                 </div>
                             </div>
                         </div>

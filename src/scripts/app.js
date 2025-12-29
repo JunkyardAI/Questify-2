@@ -58,36 +58,28 @@ function appReducer(state, action) {
                 // Removing XP penalty & Reverting Combo to prevent farming
                 const priorityMult = window.PRIORITIES[task.priority]?.xpMult || 1;
                 
-                // Calculate multiplier based on current combo state
                 const currentMult = newCombo.count > 0 ? (1 + ((newCombo.count - 1) * 0.1)) : 1;
                 const totalRemove = Math.floor(task.xpReward * priorityMult * currentMult);
                 
-                // Simply subtract. Level down logic below will handle negative values.
                 newXp = newXp - totalRemove;
                 
-                // Decrement combo count to prevent multiplier climbing
                 if (newCombo.count > 0) {
                     newCombo.count--;
                 }
             }
             
-            // Level Logic (Up and Down)
-            
-            // Handle Level Up
+            // Level Logic
             while (newXp >= newLevel * 1000) {
                 newXp -= newLevel * 1000;
                 newLevel++;
                 effect = { type: 'LEVEL_UP', level: newLevel };
             }
 
-            // Handle Level Down (Fix for exploit)
-            // If XP is negative, we drop a level and add the previous level's XP cap back
             while (newXp < 0 && newLevel > 1) {
                 newLevel--;
                 newXp += newLevel * 1000;
             }
             
-            // Safety: If Level 1 and XP is still negative, cap at 0
             if (newLevel === 1 && newXp < 0) {
                 newXp = 0;
             }
@@ -159,6 +151,7 @@ function appReducer(state, action) {
         }
 
         case 'APPLY_TEMPLATE': {
+            // Legacy support
             const newTasks = action.payload.map(t => ({
                 ...t, 
                 id: window.generateId(), 
@@ -168,6 +161,61 @@ function appReducer(state, action) {
                 dueDate: null,
                 position: window.getRandomPos()
             }));
+            return { ...state, tasks: [...newTasks, ...state.tasks] };
+        }
+
+        // --- BLUEPRINT ACTIONS ---
+        case 'SAVE_BLUEPRINT': {
+            const { name, tasks } = action.payload;
+            // Sanitize tasks for blueprint (remove IDs, dates, completion status)
+            const blueprintTasks = tasks.map(t => ({
+                title: t.title,
+                priority: t.priority,
+                xpReward: t.xpReward,
+                subtasks: t.subtasks.map(st => ({ title: st.title, completed: false }))
+            }));
+            
+            const newBlueprint = {
+                id: window.generateId(),
+                name: name,
+                description: `Created on ${new Date().toLocaleDateString()}`,
+                tasks: blueprintTasks
+            };
+            
+            return { ...state, blueprints: [...(state.blueprints || []), newBlueprint] };
+        }
+
+        case 'DELETE_BLUEPRINT': {
+            return { ...state, blueprints: state.blueprints.filter(bp => bp.id !== action.payload) };
+        }
+
+        case 'IMPORT_BLUEPRINT': {
+            const bp = action.payload;
+            // Basic validation
+            if (!bp.name || !bp.tasks) return state;
+            
+            // Assign new ID to avoid collisions
+            const importedBp = { ...bp, id: window.generateId() };
+            return { ...state, blueprints: [...(state.blueprints || []), importedBp] };
+        }
+
+        case 'APPLY_BLUEPRINT': {
+            const blueprint = state.blueprints.find(bp => bp.id === action.payload);
+            if (!blueprint) return state;
+
+            const newTasks = blueprint.tasks.map(t => ({
+                id: window.generateId(),
+                title: t.title,
+                folderId: state.activeFolderId,
+                completed: false,
+                priority: t.priority || 'MEDIUM',
+                xpReward: t.xpReward || 100,
+                subtasks: t.subtasks ? t.subtasks.map(st => ({ ...st, id: window.generateId(), completed: false })) : [],
+                createdAt: Date.now(),
+                dueDate: null,
+                position: window.getRandomPos()
+            }));
+
             return { ...state, tasks: [...newTasks, ...state.tasks] };
         }
 
@@ -224,15 +272,13 @@ const App = () => {
             const now = Date.now();
             const { lastSpawn } = state.spawner;
             
-            // Count active side quests
             const activeSideQuests = state.tasks.filter(t => t.isSideQuest && !t.completed).length;
 
-            // Conditions: Cooldown passed AND slots available (< 3)
             if (now - lastSpawn > window.SPAWN_COOLDOWN_MS && activeSideQuests < 3) {
                 dispatch({ type: 'SPAWN_SIDE_QUEST' });
             }
 
-        }, 60000); // Check every minute
+        }, 60000); 
 
         return () => clearInterval(spawnerInterval);
     }, [state.spawner, state.tasks]);

@@ -255,10 +255,142 @@ window.DashboardBoard = ({ state, dispatch }) => {
     );
 };
 
+// --- GrimoireModal (Blueprints) ---
+window.GrimoireModal = ({ state, dispatch, onClose }) => {
+    const [view, setView] = useState('list'); // list, create
+    const [newBpName, setNewBpName] = useState('');
+    const fileInputRef = useRef(null);
+
+    const activeFolder = state.folders.find(f => f.id === state.activeFolderId) || state.folders[0];
+    const tasksInFolder = state.tasks.filter(t => t.folderId === state.activeFolderId);
+
+    const handleCreate = () => {
+        if(!newBpName.trim()) return;
+        dispatch({
+            type: 'SAVE_BLUEPRINT',
+            payload: { name: newBpName, tasks: tasksInFolder }
+        });
+        setNewBpName('');
+        setView('list');
+    };
+
+    const handleApply = (bpId) => {
+        dispatch({ type: 'APPLY_BLUEPRINT', payload: bpId });
+        onClose();
+        alert("Blueprint applied to current folder!");
+    };
+
+    const handleExport = (bp) => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bp));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `blueprint_${bp.name.replace(/\s+/g, '_')}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    };
+
+    const handleImportClick = () => fileInputRef.current.click();
+
+    const handleFileChange = (e) => {
+        const fileReader = new FileReader();
+        fileReader.readAsText(e.target.files[0], "UTF-8");
+        fileReader.onload = e => {
+            try {
+                const parsed = JSON.parse(e.target.result);
+                if(parsed.tasks && Array.isArray(parsed.tasks)) {
+                    dispatch({ type: 'IMPORT_BLUEPRINT', payload: parsed });
+                    alert("Blueprint imported into Grimoire!");
+                } else {
+                    alert("Invalid Blueprint file.");
+                }
+            } catch(err) {
+                alert("Error reading file.");
+            }
+        };
+    };
+
+    return (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-discord-dark p-0 rounded-lg shadow-2xl w-[600px] border border-discord-light max-h-[90vh] overflow-hidden flex flex-col">
+                <div className="p-4 border-b border-discord-light flex justify-between items-center bg-discord-darker">
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                        <Icon name="book" size={20} className="text-purple-400" /> 
+                        Grimoire (Blueprints)
+                    </h2>
+                    <button onClick={onClose} className="text-gray-400 hover:text-white"><Icon name="x" size={20}/></button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6">
+                    {view === 'list' && (
+                        <div className="space-y-4">
+                            <div className="flex gap-2 mb-4">
+                                <button onClick={() => setView('create')} className="flex-1 bg-discord-blurple hover:bg-indigo-600 text-white py-2 rounded font-bold text-xs flex items-center justify-center gap-2">
+                                    <Icon name="plus" size={14} /> Create from Current Folder
+                                </button>
+                                <button onClick={handleImportClick} className="flex-1 bg-discord-light hover:bg-gray-600 text-white py-2 rounded font-bold text-xs flex items-center justify-center gap-2">
+                                    <Icon name="upload" size={14} /> Import Blueprint
+                                </button>
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".json" />
+                            </div>
+
+                            <div className="space-y-2">
+                                {(state.blueprints || []).length === 0 && (
+                                    <p className="text-center text-gray-500 text-sm py-4">No blueprints yet.</p>
+                                )}
+                                {(state.blueprints || []).map(bp => (
+                                    <div key={bp.id} className="bg-discord-darker p-3 rounded border border-discord-light hover:border-discord-blurple transition-colors group">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="font-bold text-gray-200 text-sm">{bp.name}</h3>
+                                                <p className="text-xs text-gray-400">{bp.tasks.length} tasks • {bp.description || 'No description'}</p>
+                                            </div>
+                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => handleExport(bp)} className="p-1.5 hover:bg-gray-700 rounded text-gray-400" title="Export"><Icon name="download" size={14}/></button>
+                                                <button onClick={() => { if(confirm('Delete blueprint?')) dispatch({type: 'DELETE_BLUEPRINT', payload: bp.id}) }} className="p-1.5 hover:bg-red-900/50 text-red-400 rounded" title="Delete"><Icon name="trash" size={14}/></button>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => handleApply(bp.id)} className="w-full mt-3 bg-discord-light hover:bg-discord-green hover:text-white text-gray-300 py-1.5 rounded text-xs font-bold transition-colors">
+                                            Apply to Current Folder
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {view === 'create' && (
+                        <div className="space-y-4">
+                            <div className="bg-discord-darker p-4 rounded text-sm text-gray-300">
+                                <p className="mb-2 font-bold text-white">Create New Blueprint</p>
+                                <p className="text-xs text-gray-400 mb-4">
+                                    Saving the current folder <strong>{activeFolder.name}</strong> ({tasksInFolder.length} tasks) as a blueprint.
+                                </p>
+                                <input 
+                                    className="w-full bg-discord-darkest text-white p-2 rounded border border-discord-light mb-4 outline-none focus:border-discord-blurple"
+                                    placeholder="Blueprint Name (e.g., Daily Routine)"
+                                    value={newBpName}
+                                    onChange={e => setNewBpName(e.target.value)}
+                                    autoFocus
+                                />
+                                <div className="flex gap-2">
+                                    <button onClick={() => setView('list')} className="flex-1 bg-transparent hover:bg-discord-light text-gray-400 py-2 rounded text-xs">Cancel</button>
+                                    <button onClick={handleCreate} className="flex-1 bg-discord-blurple hover:bg-indigo-600 text-white py-2 rounded font-bold text-xs">Save Blueprint</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- Sidebar ---
 window.Sidebar = React.memo(({ state, dispatch, onOpenSettings }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [newFolder, setNewFolder] = useState('');
+    const [showGrimoire, setShowGrimoire] = useState(false);
     const { useMemo } = React;
 
     const handleAdd = (e) => {
@@ -273,10 +405,20 @@ window.Sidebar = React.memo(({ state, dispatch, onOpenSettings }) => {
 
     return (
         <div className="w-64 bg-discord-darker flex flex-col border-r border-discord-darkest flex-shrink-0">
+            {showGrimoire && <window.GrimoireModal state={state} dispatch={dispatch} onClose={() => setShowGrimoire(false)} />}
+            
             <div className="h-12 flex items-center px-4 border-b border-discord-darkest font-bold text-white tracking-tight gap-2">
-                <Icon name="sword" className="text-discord-blurple" /> QUESTIFY <span className="text-[10px] bg-discord-blurple px-1 rounded text-white ml-auto">v1.0</span>
+                <Icon name="sword" className="text-discord-blurple" /> QUESTIFY <span className="text-[10px] bg-discord-blurple px-1 rounded text-white ml-auto">v1.1</span>
             </div>
+            
             <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+                {/* Grimoire Button */}
+                <button onClick={() => setShowGrimoire(true)} className="w-full flex items-center gap-3 px-2 py-2 rounded transition-all mb-4 text-purple-300 hover:bg-purple-900/20 hover:text-purple-200 group">
+                    <Icon name="book" size={18} />
+                    <span className="font-bold text-sm">Grimoire (Blueprints)</span>
+                </button>
+
+                {/* Folders */}
                 {state.folders.map(f => (
                     <button key={f.id} onClick={() => dispatch({type: 'SET_FOLDER', payload: f.id})}
                         className={`w-full flex items-center gap-3 px-2 py-2 rounded transition-all group focus:outline-none focus:ring-2 focus:ring-discord-blurple ${state.activeFolderId === f.id ? 'bg-discord-light text-white' : 'text-gray-400 hover:bg-discord-dark hover:text-gray-200'}`}>
@@ -289,6 +431,7 @@ window.Sidebar = React.memo(({ state, dispatch, onOpenSettings }) => {
                         )}
                     </button>
                 ))}
+                
                 <button className="w-full mt-4 px-2 flex items-center justify-between text-xs font-bold text-gray-500 uppercase cursor-pointer hover:text-gray-300 transition-colors focus:outline-none" onClick={() => setIsAdding(!isAdding)}>
                     <span>Projects</span>
                     <Icon name="plus" size={12} />

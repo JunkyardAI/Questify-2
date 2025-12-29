@@ -167,7 +167,6 @@ function appReducer(state, action) {
         // --- BLUEPRINT ACTIONS ---
         case 'SAVE_BLUEPRINT': {
             const { name, tasks } = action.payload;
-            // Sanitize tasks for blueprint (remove IDs, dates, completion status)
             const blueprintTasks = tasks.map(t => ({
                 title: t.title,
                 priority: t.priority,
@@ -191,10 +190,7 @@ function appReducer(state, action) {
 
         case 'IMPORT_BLUEPRINT': {
             const bp = action.payload;
-            // Basic validation
             if (!bp.name || !bp.tasks) return state;
-            
-            // Assign new ID to avoid collisions
             const importedBp = { ...bp, id: window.generateId() };
             return { ...state, blueprints: [...(state.blueprints || []), importedBp] };
         }
@@ -224,9 +220,12 @@ function appReducer(state, action) {
 }
 
 const App = () => {
+    // FIX: Ensure combo is reset to 0 on initial load to prevent visual glitches
     const [state, dispatch] = useReducer(appReducer, window.INITIAL_STATE, (init) => {
         const saved = localStorage.getItem('questify_v4');
-        return saved ? JSON.parse(saved) : init;
+        const parsed = saved ? JSON.parse(saved) : init;
+        // Override combo state during initialization
+        return { ...parsed, combo: { count: 0, lastCompletion: 0 } };
     });
 
     useEffect(() => {

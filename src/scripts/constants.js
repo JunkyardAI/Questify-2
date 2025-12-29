@@ -1,4 +1,4 @@
-window.APP_VERSION = "1.1.0-OSS";
+window.APP_VERSION = "1.2.0-OSS";
 
 window.SIDE_QUESTS = [
     { title: "Drop and give me 20 (Pushups)", xp: 150, type: "FITNESS" },
@@ -25,16 +25,57 @@ window.DIFFICULTY_SETTINGS = {
 
 window.SPAWN_COOLDOWN_MS = 8 * 60 * 60 * 1000; // 8 hours
 
-// Default Blueprint to show off the feature
+// Updated Blueprint with your Gumroad Guide
 const DEFAULT_BLUEPRINT = {
-    id: 'bp_default_1',
-    name: '🚀 Product Launch Protocol',
-    description: 'Standard operating procedure for deploying new features.',
+    id: 'bp_gumroad_guide',
+    name: '📦 Gumroad Integration Protocol',
+    description: 'Step-by-step guide to adding Gumroad licensing to your app.',
     tasks: [
-        { title: 'Code Freeze & Final Review', priority: 'CRITICAL', xpReward: 500, subtasks: [{title: 'Check CI/CD pipelines', completed: false}, {title: 'Merge staging to main', completed: false}] },
-        { title: 'Update Documentation', priority: 'MEDIUM', xpReward: 200, subtasks: [] },
-        { title: 'Notify Stakeholders', priority: 'HIGH', xpReward: 300, subtasks: [{title: 'Email Marketing Team', completed: false}, {title: 'Update Changelog', completed: false}] },
-        { title: 'Post-Launch Monitoring (1h)', priority: 'HIGH', xpReward: 400, subtasks: [] }
+        { 
+            title: 'Step 1: Update the Context (core/context.py)', 
+            priority: 'HIGH', 
+            xpReward: 150, 
+            subtasks: [
+                { title: 'Create storage for Gumroad Permalink', completed: false }
+            ] 
+        },
+        { 
+            title: 'Step 2: Update Main Template (templates/main.js)', 
+            priority: 'CRITICAL', 
+            xpReward: 300, 
+            subtasks: [
+                { title: 'Replace dummy check with real HTTP request', completed: false },
+                { title: 'Verify HTTPS request logic', completed: false }
+            ] 
+        },
+        { 
+            title: 'Step 3: Update Generator (core/generator.py)', 
+            priority: 'MEDIUM', 
+            xpReward: 100, 
+            subtasks: [
+                { title: 'Pass gumroad_permalink to template', completed: false }
+            ] 
+        },
+        { 
+            title: 'Step 4: Update GUI (eab_gui.py)', 
+            priority: 'MEDIUM', 
+            xpReward: 100, 
+            subtasks: [
+                { title: 'Add text field for Permalink', completed: false }
+            ] 
+        },
+        { 
+            title: 'Step 5: The "Walkthrough" (Selling It)', 
+            priority: 'HIGH', 
+            xpReward: 500, 
+            subtasks: [
+                { title: 'Create Product on Gumroad (Digital, $10)', completed: false },
+                { title: 'Turn on License Keys (Content Tab)', completed: false },
+                { title: 'Get Permalink from Share Tab', completed: false },
+                { title: 'Build App with EAB Builder', completed: false },
+                { title: 'Upload Setup.exe to Gumroad Content', completed: false }
+            ] 
+        }
     ]
 };
 
@@ -54,7 +95,7 @@ window.INITIAL_STATE = {
         { id: 'quest_log', name: 'Quest Log', icon: 'scroll', type: 'system' },
         { id: 'dailies', name: 'Daily Rituals', icon: 'repeat', type: 'system' }
     ],
-    blueprints: [DEFAULT_BLUEPRINT], // New Blueprints Array
+    blueprints: [DEFAULT_BLUEPRINT],
     combo: { count: 0, lastCompletion: 0 },
     spawner: { lastSpawn: Date.now(), activeSideQuests: 0 },
     lastEffect: null

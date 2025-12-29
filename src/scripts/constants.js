@@ -1,4 +1,4 @@
-window.APP_VERSION = "1.0.0-OSS";
+window.APP_VERSION = "1.1.0-OSS";
 
 window.SIDE_QUESTS = [
     { title: "Drop and give me 20 (Pushups)", xp: 150, type: "FITNESS" },
@@ -25,6 +25,19 @@ window.DIFFICULTY_SETTINGS = {
 
 window.SPAWN_COOLDOWN_MS = 8 * 60 * 60 * 1000; // 8 hours
 
+// Default Blueprint to show off the feature
+const DEFAULT_BLUEPRINT = {
+    id: 'bp_default_1',
+    name: '🚀 Product Launch Protocol',
+    description: 'Standard operating procedure for deploying new features.',
+    tasks: [
+        { title: 'Code Freeze & Final Review', priority: 'CRITICAL', xpReward: 500, subtasks: [{title: 'Check CI/CD pipelines', completed: false}, {title: 'Merge staging to main', completed: false}] },
+        { title: 'Update Documentation', priority: 'MEDIUM', xpReward: 200, subtasks: [] },
+        { title: 'Notify Stakeholders', priority: 'HIGH', xpReward: 300, subtasks: [{title: 'Email Marketing Team', completed: false}, {title: 'Update Changelog', completed: false}] },
+        { title: 'Post-Launch Monitoring (1h)', priority: 'HIGH', xpReward: 400, subtasks: [] }
+    ]
+};
+
 window.INITIAL_STATE = {
     user: { xp: 0, level: 1, name: "Task Master" },
     view: 'full', // 'full' or 'board'
@@ -41,6 +54,7 @@ window.INITIAL_STATE = {
         { id: 'quest_log', name: 'Quest Log', icon: 'scroll', type: 'system' },
         { id: 'dailies', name: 'Daily Rituals', icon: 'repeat', type: 'system' }
     ],
+    blueprints: [DEFAULT_BLUEPRINT], // New Blueprints Array
     combo: { count: 0, lastCompletion: 0 },
     spawner: { lastSpawn: Date.now(), activeSideQuests: 0 },
     lastEffect: null
